@@ -17,6 +17,31 @@ const routes = [
         name: 'Home',
         component: () => import('../views/Home.vue'),
       },
+      {
+        path: 'dict/person',
+        name: 'DictPerson',
+        component: () => import('../views/dict/Person.vue'),
+      },
+      {
+        path: 'dict/vehicle',
+        name: 'DictVehicle',
+        component: () => import('../views/dict/Vehicle.vue'),
+      },
+      {
+        path: 'dict/route',
+        name: 'DictRoute',
+        component: () => import('../views/dict/Route.vue'),
+      },
+      {
+        path: 'dict/customer',
+        name: 'DictCustomer',
+        component: () => import('../views/dict/Customer.vue'),
+      },
+      {
+        path: 'dict/cigarette',
+        name: 'DictCigarette',
+        component: () => import('../views/dict/Cigarette.vue'),
+      },
     ],
   },
 ]

@@ -27,6 +27,32 @@
           <el-icon><HomeFilled /></el-icon>
           <template #title>首页</template>
         </el-menu-item>
+        <el-sub-menu index="dict">
+          <template #title>
+            <el-icon><Folder /></el-icon>
+            <span>字典管理</span>
+          </template>
+          <el-menu-item index="/dict/person">
+            <el-icon><User /></el-icon>
+            <template #title>人员管理</template>
+          </el-menu-item>
+          <el-menu-item index="/dict/vehicle">
+            <el-icon><Van /></el-icon>
+            <template #title>车辆管理</template>
+          </el-menu-item>
+          <el-menu-item index="/dict/route">
+            <el-icon><Guide /></el-icon>
+            <template #title>线路管理</template>
+          </el-menu-item>
+          <el-menu-item index="/dict/customer">
+            <el-icon><OfficeBuilding /></el-icon>
+            <template #title>零售客户</template>
+          </el-menu-item>
+          <el-menu-item index="/dict/cigarette">
+            <el-icon><Goods /></el-icon>
+            <template #title>卷烟品牌</template>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
 
       <!-- Sidebar footer -->
