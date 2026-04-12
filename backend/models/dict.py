@@ -1,3 +1,5 @@
+from datetime import date
+
 from sqlalchemy import String, Date, Integer, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,8 +12,8 @@ class DictPerson(DictBase, Base):
 
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     id_card: Mapped[str] = mapped_column(String(18), unique=True, nullable=False)
-    birth_date: Mapped[str | None] = mapped_column(Date)
-    join_date: Mapped[str | None] = mapped_column(Date)
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    join_date: Mapped[date | None] = mapped_column(Date)
     position: Mapped[str | None] = mapped_column(String(50))
     department: Mapped[str | None] = mapped_column(String(50))
     employment_type: Mapped[str | None] = mapped_column(String(30))

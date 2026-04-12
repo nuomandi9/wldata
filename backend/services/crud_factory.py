@@ -2,12 +2,13 @@ from typing import Any, Sequence
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func, or_, String
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from middleware.auth import get_current_user, require_admin
 from schemas.auth import UserInfo
-from schemas.common import PageParams, PageResult
+from schemas.common import PageResult
 from schemas.dict import OptionItem
 
 
@@ -40,10 +41,11 @@ def create_crud_router(
             count_query = count_query.where(model.is_active == is_active)
 
         if keyword and search_fields:
+            safe = keyword.replace("%", r"\%").replace("_", r"\_")
             conditions = []
             for field_name in search_fields:
                 col = getattr(model, field_name)
-                conditions.append(col.cast(String).ilike(f"%{keyword}%"))
+                conditions.append(col.cast(String).ilike(f"%{safe}%"))
             query = query.where(or_(*conditions))
             count_query = count_query.where(or_(*conditions))
 
@@ -93,9 +95,13 @@ def create_crud_router(
         db: AsyncSession = Depends(get_db),
         admin: UserInfo = Depends(require_admin),
     ):
-        item = model(**data.model_dump(exclude_none=True))
+        item = model(**data.model_dump(exclude_unset=True))
         db.add(item)
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(status_code=409, detail="记录已存在（编码或唯一字段重复）")
         await db.refresh(item)
         return out_schema.model_validate(item)
 
@@ -112,7 +118,11 @@ def create_crud_router(
             raise HTTPException(status_code=404, detail="记录不存在")
         for key, value in data.model_dump(exclude_unset=True).items():
             setattr(item, key, value)
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(status_code=409, detail="记录已存在（编码或唯一字段重复）")
         await db.refresh(item)
         return out_schema.model_validate(item)
 

@@ -1,14 +1,7 @@
 from typing import Generic, TypeVar
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 T = TypeVar("T")
-
-
-class PageParams(BaseModel):
-    page: int = Field(default=1, ge=1)
-    page_size: int = Field(default=20, ge=1, le=100)
-    keyword: str | None = None
-    is_active: bool | None = None
 
 
 class PageResult(BaseModel, Generic[T]):
