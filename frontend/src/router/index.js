@@ -18,6 +18,11 @@ const routes = [
         component: () => import('../views/Home.vue'),
       },
       {
+        path: 'import',
+        name: 'Import',
+        component: () => import('../views/import/Index.vue'),
+      },
+      {
         path: 'dict/person',
         name: 'DictPerson',
         component: () => import('../views/dict/Person.vue'),

@@ -27,6 +27,10 @@
           <el-icon><HomeFilled /></el-icon>
           <template #title>首页</template>
         </el-menu-item>
+        <el-menu-item index="/import">
+          <el-icon><Upload /></el-icon>
+          <template #title>数据导入</template>
+        </el-menu-item>
         <el-sub-menu index="dict">
           <template #title>
             <el-icon><Folder /></el-icon>
