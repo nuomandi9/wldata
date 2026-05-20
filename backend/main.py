@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.auth import router as auth_router
 from api.dict import router as dict_router
 from api.import_excel import router as import_router
+from api.report import router as report_router
 
 app = FastAPI(title="烟草物流数据管理系统", version="1.0.0")
 
@@ -21,6 +22,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(dict_router)
 app.include_router(import_router)
+app.include_router(report_router)
 
 
 @app.get("/api/health")
