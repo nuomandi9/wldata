@@ -13,7 +13,7 @@
 ## File Structure
 
 ```
-tobacco-logistics/
+enterprise-logistics/
 ├── docker-compose.yml                  # postgres + backend + nginx
 ├── nginx/
 │   └── default.conf                    # proxy /api → backend, serve frontend
@@ -139,7 +139,7 @@ async def get_db():
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="烟草物流数据管理系统", version="1.0.0")
+app = FastAPI(title="“企业”物流数据管理系统", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -663,7 +663,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.auth import router as auth_router
 
-app = FastAPI(title="烟草物流数据管理系统", version="1.0.0")
+app = FastAPI(title="“企业”物流数据管理系统", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -961,7 +961,7 @@ git commit -m "feat: Axios request layer with JWT and Pinia user store"
   <div class="login-container">
     <el-card class="login-card" shadow="hover">
       <template #header>
-        <h2 class="login-title">烟草物流数据管理系统</h2>
+        <h2 class="login-title">“企业”物流数据管理系统</h2>
       </template>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="0" @submit.prevent="handleLogin">
         <el-form-item prop="username">
@@ -1067,7 +1067,7 @@ git commit -m "feat: login page with form validation"
   <el-container class="layout-container">
     <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="logo">
-        <span v-show="!isCollapse">烟草物流数据管理</span>
+        <span v-show="!isCollapse">“企业”物流数据管理</span>
         <span v-show="isCollapse">物流</span>
       </div>
       <el-menu
@@ -1165,7 +1165,7 @@ function handleLogout() {
 ```vue
 <template>
   <div>
-    <h2>欢迎使用烟草物流数据管理系统</h2>
+    <h2>欢迎使用“企业”物流数据管理系统</h2>
     <p>请使用左侧菜单导航。</p>
   </div>
 </template>

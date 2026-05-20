@@ -5,8 +5,8 @@
       <div class="brand-grid"></div>
       <div class="brand-content">
         <div class="brand-badge">LOGISTICS DATA</div>
-        <h1 class="brand-title">烟草物流<br/>数据管理系统</h1>
-        <p class="brand-subtitle">Tobacco Logistics Data Management</p>
+        <h1 class="brand-title">“企业”物流<br/>数据管理系统</h1>
+        <p class="brand-subtitle">Enterprise Logistics Data Management</p>
         <div class="brand-divider"></div>
         <p class="brand-desc">高效数据管理 · 智能决策支持 · 全链路可视化</p>
       </div>

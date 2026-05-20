@@ -1,4 +1,4 @@
-# 烟草物流数据管理系统 — 第一版设计文档
+# “企业”物流数据管理系统 — 第一版设计文档
 
 ## 一、项目概述
 
@@ -131,7 +131,7 @@
 ## 八、项目结构
 
 ```
-tobacco-logistics/
+enterprise-logistics/
 ├── docker-compose.yml
 ├── nginx/
 │   └── default.conf

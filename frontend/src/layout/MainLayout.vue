@@ -11,7 +11,7 @@
           </svg>
         </div>
         <transition name="logo-text">
-          <span v-show="!isCollapse" class="logo-text">烟草物流数据</span>
+          <span v-show="!isCollapse" class="logo-text">“企业”物流数据</span>
         </transition>
       </div>
       <div class="logo-divider"></div>

@@ -815,7 +815,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.auth import router as auth_router
 from api.dict import router as dict_router
 
-app = FastAPI(title="烟草物流数据管理系统", version="1.0.0")
+app = FastAPI(title="“企业”物流数据管理系统", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

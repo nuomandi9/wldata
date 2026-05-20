@@ -6,7 +6,7 @@
         <h1 class="welcome-title">
           {{ greeting }}，{{ userStore.userInfo?.real_name || userStore.userInfo?.username || '用户' }}
         </h1>
-        <p class="welcome-desc">欢迎使用烟草物流数据管理系统，祝您工作顺利。</p>
+        <p class="welcome-desc">欢迎使用“企业”物流数据管理系统，祝您工作顺利。</p>
       </div>
       <div class="welcome-pattern"></div>
     </div>

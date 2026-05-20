@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project context
 
-烟草物流数据管理系统 — internal LAN web app for a tobacco logistics center (~8 users) that replaces Excel-based reporting workflows. First version focuses on data dictionaries, Excel import + validation, fixed and ad-hoc reports, and Excel export. Design docs live under `docs/superpowers/specs/`.
+“企业”物流数据管理系统 — internal LAN web app for an enterprise logistics center (~8 users) that replaces Excel-based reporting workflows. First version focuses on data dictionaries, Excel import + validation, fixed and ad-hoc reports, and Excel export. Design docs live under `docs/superpowers/specs/`.
 
 Stack: Vue 3 + Element Plus + Vite (frontend) · FastAPI + SQLAlchemy 2.0 async + Pydantic v2 (backend) · PostgreSQL 15 · Alembic migrations · Docker Compose for deployment.
 
