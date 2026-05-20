@@ -31,6 +31,10 @@
           <el-icon><Upload /></el-icon>
           <template #title>数据导入</template>
         </el-menu-item>
+        <el-menu-item index="/report">
+          <el-icon><DataAnalysis /></el-icon>
+          <template #title>报表查询</template>
+        </el-menu-item>
         <el-sub-menu index="dict">
           <template #title>
             <el-icon><Folder /></el-icon>

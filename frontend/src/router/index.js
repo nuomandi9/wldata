@@ -23,6 +23,11 @@ const routes = [
         component: () => import('../views/import/Index.vue'),
       },
       {
+        path: 'report',
+        name: 'Report',
+        component: () => import('../views/report/Index.vue'),
+      },
+      {
         path: 'dict/person',
         name: 'DictPerson',
         component: () => import('../views/dict/Person.vue'),
