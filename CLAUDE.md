@@ -54,6 +54,22 @@ The five dictionary domains (person, vehicle, route, customer, cigarette) all go
 - Pydantic v2 with `model_config = {"from_attributes": True}` on every `*Out` schema — the factory calls `out_schema.model_validate(orm_instance)`.
 - DB is fully async (`asyncpg` + `AsyncSession`). All endpoints `async def`, all queries use `await db.execute(select(...))`. `IntegrityError` is caught in the factory and surfaced as HTTP 409.
 
+### Backend: Excel import pipeline (`biz_*` tables)
+
+Business data enters through a **stateless** import flow — the same xlsx is uploaded for both preview and commit, and the commit step re-validates server-side, so dict changes between the two calls cannot smuggle bad data through and the client can never supply trusted FK ids.
+
+- `services/import_templates.py` declares each `ImportTemplate` (target model + `ImportColumn`s). A column may carry a `Lookup` (resolve a human-readable key like 车牌号/线路编码 to a dict-table FK id) and `warn_min`/`warn_max` numeric thresholds. **To add an importable table:** add the model + one `ImportTemplate` to `TEMPLATES`.
+- `services/excel_parser.py` reads headers→fields (openpyxl read_only); `services/import_validator.py` runs the three-stage pipeline with batch-level lookup caching (a 1000-row import referencing 20 vehicles hits the DB 20×, not 1000×).
+- Validation levels per design §5.3: **BLOCK** (type error / missing required / lookup miss / inactive dict row) is never insertable; **WARN** (numeric out of range) is insertable only with a per-row `warn_notes`. `api/import_excel.py` exposes `GET /templates`, `POST /{key}/preview`, `POST /{key}/commit`.
+
+### Backend: report querying (`sys_report_template`)
+
+Fixed reports are **DB-stored templates**, not hand-written endpoints. A `ReportTemplate` row holds an admin-authored, parameterized `sql_template` (`:name` placeholders), a `params_schema`, and a `columns_schema`.
+
+- `services/report_executor.py` is the **SQL trust boundary**: the `sql_template` is admin-trusted, but user params are coerced to declared types and bound via `text()` — never string-formatted. Undeclared keys are dropped. Optional FK params use `CAST(:p AS INTEGER)` in the SQL so asyncpg can resolve a `NULL` bind's type. Pagination wraps the template as `SELECT * FROM (...) AS _r LIMIT/OFFSET`; templates must therefore contain **no LIMIT/OFFSET** and **should** carry a stable total ORDER BY.
+- Exports are capped at `MAX_EXPORT_ROWS` (50000) — the output-side analogue of the §十 50MB upload limit. `services/excel_exporter.py` renders xlsx via openpyxl.
+- `api/report.py` exposes `GET /templates`, `GET /templates/{key}`, `POST /{key}/execute` (paginated JSON), `POST /{key}/export` (xlsx download). **SQL is never returned to clients.** Seed initial templates with `python ../scripts/seed_reports.py` (idempotent).
+
 ### Frontend: config-driven dictionary UI
 
 The frontend deliberately mirrors the backend's factory pattern.
