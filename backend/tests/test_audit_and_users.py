@@ -78,10 +78,16 @@ async def test_audit_detail_never_contains_password(client, seed_admin):
         headers=auth(token),
     )
 
-    logs = (await client.get("/api/audit/logs", headers=auth(token))).json()
-    blob = json.dumps(logs, ensure_ascii=False)
-    assert secret not in blob
-    assert "AnotherSecret456" not in blob
+    # Fetch the specific audited actions (not just page 1 of all logs) so the
+    # check stays valid regardless of audit volume.
+    for action in ("user.create", "user.reset_password"):
+        logs = (await client.get(
+            "/api/audit/logs", params={"action": action}, headers=auth(token)
+        )).json()
+        assert logs["total"] >= 1, f"expected an audit row for {action}"
+        blob = json.dumps(logs, ensure_ascii=False)
+        assert secret not in blob
+        assert "AnotherSecret456" not in blob
 
 
 # ── User management ───────────────────────────────────────────────────────────

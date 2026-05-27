@@ -45,11 +45,13 @@ _SECRET_FRAGMENTS = ("password", "passwd", "pwd", "secret", "token")
 
 
 def scrub(values: dict[str, Any]) -> dict[str, Any]:
-    """Make a JSONB-safe, secret-free snapshot: drop secret-ish keys and
+    """Make a JSONB-safe snapshot: drop **top-level** secret-ish keys and
     ISO-stringify dates/datetimes (asyncpg JSONB has no native date codec).
 
-    This is a defense-in-depth net; call sites must still avoid handing raw
-    request bodies to the audit log in the first place."""
+    Only top-level keys are scrubbed — a secret nested inside a sub-dict would
+    survive. This is a defense-in-depth net for flat row snapshots, not a
+    deep sanitizer; call sites must still avoid handing raw request bodies to
+    the audit log in the first place."""
     out: dict[str, Any] = {}
     for k, v in values.items():
         key_l = k.lower()
