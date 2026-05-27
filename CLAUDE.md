@@ -70,6 +70,14 @@ Fixed reports are **DB-stored templates**, not hand-written endpoints. A `Report
 - Exports are capped at `MAX_EXPORT_ROWS` (50000) — the output-side analogue of the §十 50MB upload limit. `services/excel_exporter.py` renders xlsx via openpyxl.
 - `api/report.py` exposes `GET /templates`, `GET /templates/{key}`, `POST /{key}/execute` (paginated JSON), `POST /{key}/export` (xlsx download). **SQL is never returned to clients.** Seed initial templates with `python ../scripts/seed_reports.py` (idempotent).
 
+### Backend: audit log + user management (`sys_audit_log`, `sys_user`)
+
+- `services/audit_service.py::record()` stages a `SysAuditLog` row in the **caller's** session and does NOT commit — the audited write and its audit row commit atomically. Read-only endpoints that audit (login) commit themselves. **`detail` is always a pre-built dict; never pass a raw request body** (that is how plaintext passwords leak). `scrub()` is the defense-in-depth net: it drops keys containing password/passwd/pwd/secret/token and ISO-stringifies dates (asyncpg JSONB has no date codec). The per-action `detail` shape is documented authoritatively in that module's docstring — keep it current when adding actions.
+- Audited events: `login` (successful only), `dict.create/update/delete` (wired **once** in `crud_factory.py` so all 5 domains audit consistently — create uses `flush()` to get the id, and the whole `flush→audit→commit` is one try/except so a dup still maps to 409), and `import.commit_warn` (one row per forced commit, listing forced rows + notes — design §5.3).
+- `api/audit.py`: `GET /api/audit/logs` is **admin-only, read-only** (append-only trail, no mutate endpoints), paginated with username/action/date filters.
+- `api/users.py` (admin-only): list/create/update(role+is_active)/reset-password, **no hard delete**. Two guards: you cannot disable/demote yourself, and the last active admin cannot be disabled/demoted (`_is_last_active_admin`). `UserOut` never includes `password_hash`. Given `require_admin`, the only reachable zero-admin path is self-targeting, so the self-guard is the load-bearing one; the last-admin guard is defense-in-depth.
+- Frontend `系统管理` submenu (`views/system/AuditLog.vue`, `Users.vue`) is gated both by `isAdmin` in `MainLayout.vue` and `meta.adminOnly` in the router `beforeEach`.
+
 ### Frontend: config-driven dictionary UI
 
 The frontend deliberately mirrors the backend's factory pattern.
