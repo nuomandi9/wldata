@@ -85,7 +85,7 @@ async def export_report(
     tpl = await _load_template(db, key)
     try:
         columns, rows = await report_executor.execute_all(tpl, body.params, db)
-    except report_executor.ParamError as exc:
+    except (report_executor.ParamError, report_executor.ResultTooLargeError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except (DBAPIError, SQLAlchemyError) as exc:
         raise HTTPException(status_code=400, detail=f"报表执行失败：{exc.orig if hasattr(exc, 'orig') else exc}") from exc

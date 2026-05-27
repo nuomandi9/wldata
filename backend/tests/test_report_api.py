@@ -232,6 +232,57 @@ async def test_execute_pagination(client, seed_admin):
 
 
 @pytest.mark.asyncio
+async def test_pagination_pages_are_disjoint_and_ordered(client, seed_admin):
+    """Pages must not overlap, and the template's inner ORDER BY (record_date
+    DESC) must survive the pagination subquery wrap. 3 rows / page_size 2:
+    page 1 = [05-03, 05-02], page 2 = [05-01], disjoint and globally ordered.
+    """
+    await seed_template()
+    token = await get_admin_token(client)
+    headers = auth_header(token)
+    await seed_test_data(client, headers)
+
+    async def page(n):
+        resp = await client.post(
+            "/api/report/test_delivery_detail/execute",
+            json={
+                "params": {"start_date": "2026-05-01", "end_date": "2026-05-31"},
+                "page": n, "page_size": 2,
+            },
+            headers=headers,
+        )
+        return [r["record_date"] for r in resp.json()["rows"]]
+
+    p1, p2 = await page(1), await page(2)
+    assert p1 == ["2026-05-03", "2026-05-02"]      # ordered DESC within page
+    assert p2 == ["2026-05-01"]
+    assert set(p1).isdisjoint(p2)                  # no row appears on two pages
+    assert p1 + p2 == ["2026-05-03", "2026-05-02", "2026-05-01"]  # globally ordered
+
+
+@pytest.mark.asyncio
+async def test_export_row_cap(client, seed_admin, monkeypatch):
+    """Export must refuse to materialize more than MAX_EXPORT_ROWS. We lower the
+    cap to 2 and seed 3 rows so the guard trips without seeding 50k rows.
+    """
+    from services import report_executor
+    monkeypatch.setattr(report_executor, "MAX_EXPORT_ROWS", 2)
+
+    await seed_template()
+    token = await get_admin_token(client)
+    headers = auth_header(token)
+    await seed_test_data(client, headers)
+
+    resp = await client.post(
+        "/api/report/test_delivery_detail/export",
+        json={"params": {"start_date": "2026-05-01", "end_date": "2026-05-31"}},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert "上限" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
 async def test_export_returns_xlsx(client, seed_admin):
     await seed_template()
     token = await get_admin_token(client)

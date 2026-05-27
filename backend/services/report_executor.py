@@ -12,6 +12,10 @@ The executor:
   - returns rows as list of dicts keyed by column.key (only declared columns are exposed).
 
 A template must NOT contain LIMIT/OFFSET; pagination is applied externally.
+Templates SHOULD include a stable, total ORDER BY: pagination wraps the
+template as a subquery, and PostgreSQL preserves the inner ORDER BY through
+the wrap, but a template without a deterministic order can return rows in an
+arbitrary (and across-page-inconsistent) sequence.
 """
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -21,8 +25,18 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
+# Hard cap on rows an export may materialize, to protect the backend from an
+# unbounded query (e.g. a date range spanning the whole table). The §十 50MB
+# limit governs *uploads*; this is the analogous guard for *output*.
+MAX_EXPORT_ROWS = 50000
+
+
 class ParamError(ValueError):
     """User-facing parameter validation error."""
+
+
+class ResultTooLargeError(Exception):
+    """Export result exceeds MAX_EXPORT_ROWS — user must narrow the query."""
 
 
 @dataclass
@@ -72,19 +86,24 @@ async def execute(
 
 
 async def execute_all(template, raw_params: dict[str, Any], db: AsyncSession):
-    """Stream all matching rows for export (no pagination).
+    """Fetch all matching rows for export (no pagination), capped at MAX_EXPORT_ROWS.
 
-    Yields one dict (column key → serialized value) per row, plus a header on first call.
-    Returns (columns, generator). Caller iterates the generator.
+    Fetches one row past the cap so overflow is detected in a single query;
+    raises ResultTooLargeError if the result would exceed the cap.
+    Returns (columns, rows).
     """
     bound = _coerce_params(template.params_schema, raw_params)
     inner = template.sql_template.strip().rstrip(";")
-    result = await db.execute(text(inner), bound)
+    capped_sql = f"SELECT * FROM ({inner}) AS _r LIMIT :_limit"
+    result = await db.execute(text(capped_sql), {**bound, "_limit": MAX_EXPORT_ROWS + 1})
+
     column_keys = [c["key"] for c in template.columns_schema]
-    rows = [
-        {k: _serialize(row.get(k)) for k in column_keys}
-        for row in result.mappings().all()
-    ]
+    mappings = result.mappings().all()
+    if len(mappings) > MAX_EXPORT_ROWS:
+        raise ResultTooLargeError(
+            f"导出行数超过上限 {MAX_EXPORT_ROWS}，请缩小日期范围或增加筛选条件后重试"
+        )
+    rows = [{k: _serialize(row.get(k)) for k in column_keys} for row in mappings]
     return list(template.columns_schema), rows
 
 
