@@ -61,6 +61,20 @@
             <template #title>卷烟品牌</template>
           </el-menu-item>
         </el-sub-menu>
+        <el-sub-menu v-if="isAdmin" index="system">
+          <template #title>
+            <el-icon><Setting /></el-icon>
+            <span>系统管理</span>
+          </template>
+          <el-menu-item index="/system/users">
+            <el-icon><UserFilled /></el-icon>
+            <template #title>用户管理</template>
+          </el-menu-item>
+          <el-menu-item index="/system/audit">
+            <el-icon><Document /></el-icon>
+            <template #title>审计日志</template>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
 
       <!-- Sidebar footer -->
@@ -114,13 +128,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user.js'
 
 const route = useRoute()
 const userStore = useUserStore()
 const isCollapse = ref(false)
+const isAdmin = computed(() => userStore.userInfo?.role === 'admin')
 
 function handleLogout() {
   userStore.logout()

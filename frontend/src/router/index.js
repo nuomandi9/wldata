@@ -52,6 +52,18 @@ const routes = [
         name: 'DictCigarette',
         component: () => import('../views/dict/Cigarette.vue'),
       },
+      {
+        path: 'system/audit',
+        name: 'AuditLog',
+        component: () => import('../views/system/AuditLog.vue'),
+        meta: { adminOnly: true },
+      },
+      {
+        path: 'system/users',
+        name: 'Users',
+        component: () => import('../views/system/Users.vue'),
+        meta: { adminOnly: true },
+      },
     ],
   },
 ]
@@ -79,6 +91,10 @@ router.beforeEach(async (to, from, next) => {
       next('/login')
       return
     }
+  }
+  if (to.meta.adminOnly && userStore.userInfo?.role !== 'admin') {
+    next('/')
+    return
   }
   next()
 })
