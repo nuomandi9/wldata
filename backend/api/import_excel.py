@@ -8,13 +8,14 @@ never inserted regardless of what the client asks for.
 """
 import json
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from middleware.auth import get_current_user
 from models.business import DeliveryRecord
 from schemas.auth import UserInfo
+from services import audit_service
 from schemas.import_excel import (
     CommitResponse, IssueInfo, PreviewResponse, PreviewRow,
     TemplateColumnInfo, TemplateInfo,
@@ -91,6 +92,7 @@ async def preview_upload(
 @router.post("/{key}/commit", response_model=CommitResponse)
 async def commit_upload(
     key: str,
+    request: Request,
     file: UploadFile = File(...),
     commit_row_numbers: str = Form(...),       # JSON-encoded list[int]
     warn_notes: str = Form("{}"),              # JSON-encoded dict[int, str]
@@ -116,6 +118,7 @@ async def commit_upload(
 
     inserted = 0
     skipped_reasons: list[str] = []
+    forced_rows: list[dict] = []        # WARN rows force-committed with a note
 
     for rv in validated:
         if rv.row_number not in requested_rows:
@@ -134,6 +137,20 @@ async def commit_upload(
         )
         db.add(instance)
         inserted += 1
+        if rv.has_warn:
+            forced_rows.append(
+                {"row_number": rv.row_number, "warn_note": notes_map.get(rv.row_number)}
+            )
+
+    # Design §5.3: every forced (WARN-overridden) insert is audited. One record
+    # per commit captures all forced rows; it joins the same transaction.
+    if forced_rows:
+        audit_service.record(
+            db, user=current_user, action="import.commit_warn",
+            target_type=tpl.model.__tablename__,
+            detail={"template": tpl.key, "inserted": inserted, "forced_rows": forced_rows},
+            request=request,
+        )
 
     if inserted:
         await db.commit()

@@ -7,6 +7,8 @@ from api.auth import router as auth_router
 from api.dict import router as dict_router
 from api.import_excel import router as import_router
 from api.report import router as report_router
+from api.audit import router as audit_router
+from api.users import router as users_router
 
 app = FastAPI(title="“企业”物流数据管理系统", version="1.0.0")
 
@@ -23,6 +25,8 @@ app.include_router(auth_router)
 app.include_router(dict_router)
 app.include_router(import_router)
 app.include_router(report_router)
+app.include_router(audit_router)
+app.include_router(users_router)
 
 
 @app.get("/api/health")

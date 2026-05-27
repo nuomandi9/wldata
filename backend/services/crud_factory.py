@@ -1,6 +1,6 @@
 from typing import Any, Sequence
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, func, or_, String
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +10,7 @@ from middleware.auth import get_current_user, require_admin
 from schemas.auth import UserInfo
 from schemas.common import PageResult
 from schemas.dict import OptionItem
+from services import audit_service
 
 
 def create_crud_router(
@@ -22,6 +23,13 @@ def create_crud_router(
     search_fields: Sequence[str],
     label_field: str = "name",
 ) -> APIRouter:
+    """Build a full CRUD router for one dict domain.
+
+    NOTE: create/update/delete record an audit row (action `dict.create` /
+    `dict.update` / `dict.delete`, target_type = table name) in the same
+    transaction as the write. If you add new write endpoints here, audit them
+    too — auditing lives in the factory so all dict domains stay consistent.
+    """
     router = APIRouter(prefix=f"/api/dict/{prefix}", tags=[tag])
 
     @router.get("", response_model=PageResult[out_schema])
@@ -92,12 +100,22 @@ def create_crud_router(
     @router.post("", response_model=out_schema, status_code=status.HTTP_201_CREATED)
     async def create_item(
         data: create_schema,
+        request: Request,
         db: AsyncSession = Depends(get_db),
         admin: UserInfo = Depends(require_admin),
     ):
-        item = model(**data.model_dump(exclude_unset=True))
+        payload = data.model_dump(exclude_unset=True)
+        item = model(**payload)
         db.add(item)
+        # flush → audit → commit in one try so a constraint violation at either
+        # flush or commit time still surfaces as 409, not 500.
         try:
+            await db.flush()            # assigns item.id; raises IntegrityError here on dup
+            audit_service.record(
+                db, user=admin, action="dict.create",
+                target_type=model.__tablename__, target_id=item.id,
+                detail={"values": audit_service.scrub(payload)}, request=request,
+            )
             await db.commit()
         except IntegrityError:
             await db.rollback()
@@ -109,6 +127,7 @@ def create_crud_router(
     async def update_item(
         item_id: int,
         data: update_schema,
+        request: Request,
         db: AsyncSession = Depends(get_db),
         admin: UserInfo = Depends(require_admin),
     ):
@@ -116,9 +135,18 @@ def create_crud_router(
         item = result.scalar_one_or_none()
         if item is None:
             raise HTTPException(status_code=404, detail="记录不存在")
-        for key, value in data.model_dump(exclude_unset=True).items():
+        changes = data.model_dump(exclude_unset=True)
+        before = {k: getattr(item, k) for k in changes}
+        for key, value in changes.items():
             setattr(item, key, value)
         try:
+            audit_service.record(
+                db, user=admin, action="dict.update",
+                target_type=model.__tablename__, target_id=item.id,
+                detail={"before": audit_service.scrub(before),
+                        "after": audit_service.scrub(changes)},
+                request=request,
+            )
             await db.commit()
         except IntegrityError:
             await db.rollback()
@@ -129,6 +157,7 @@ def create_crud_router(
     @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_item(
         item_id: int,
+        request: Request,
         db: AsyncSession = Depends(get_db),
         admin: UserInfo = Depends(require_admin),
     ):
@@ -137,6 +166,11 @@ def create_crud_router(
         if item is None:
             raise HTTPException(status_code=404, detail="记录不存在")
         item.is_active = False
+        audit_service.record(
+            db, user=admin, action="dict.delete",
+            target_type=model.__tablename__, target_id=item.id,
+            detail={}, request=request,
+        )
         await db.commit()
 
     return router
